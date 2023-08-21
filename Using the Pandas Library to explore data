@@ -1,0 +1,30 @@
+# The Pandas library is used in python scripts for basic data analysis and data editing tasks.
+# I can use Pandas either inside ArcGIS Pro's built-in Python window or inside the software's Jupyter
+# Notebook window. Great for giving me a surface-level view of my data before working with it.
+# I can take tabular data (spatial or non-spatial) and use Pandas to add it to its own Pandas 
+# Data Frame. From there, I can filter, aggregate, and transform that data however I please - great
+# for cleaning and preparing a feature's attribute data before conducting any spatial analysis on it.
+
+# Import the Pandas library.
+import pandas as pd
+
+# Assign a .csv document to a variable.
+csvTable = pd.read_csv( r"my_csv's_full_pathway )
+
+# Preview the .csv data in my Jupyter Notebook window.
+csvTable.head()
+
+# Learn about my data's columns
+csvTable.info()
+
+# Examine my data's basic statistical properties
+csvTable.describe()
+
+# Statistically analyze the properties of one single column from my data
+csvTable[ 'column_name' ].describe()
+
+# Identify the Mean of one single column
+csvTable[ 'column_name' ].mean()
+
+# Identify the Median of one single column
+csvTable[ 'column_name' ].median()
