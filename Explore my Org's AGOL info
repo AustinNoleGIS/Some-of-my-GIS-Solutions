@@ -1,0 +1,35 @@
+# Explore my Organization's AGOL
+
+# import my GIS module
+from arcgis.gis import GIS
+
+# using the Pro authentication method, I can view the permissions my org has
+# granted me via specific ArcGIS Pro licenses and connect
+gis - GIS("pro")
+
+# Now, because I just did ^^that, I can type *gis.* , press *TAB* , then I’ll 
+# see a window popup containing the properties and methods directly available to 
+# me to use through the python API.
+
+# to view the URL I'm currently connected to
+gis
+
+# I can also view the name of the URL I'm connected to via this
+gis.properties.portalName
+
+# I can construct my organization's specific URL using a few of the gis properties
+print( f"{ gis.properties.urlKey } . { gis.properties.customBaseUrl }" )
+==
+cityofkent.maps.arcgis.com
+
+# I could also connect to AGOL using a built-in account
+print( “ArcGIS Online Org Account” )
+gis = GIS( “home” )
+print( “Logged in as “ + str( gis.properties.user.username ) )
+==
+ArcGIS Online Organization Account
+Logged in as Anole@kentwa.gov
+
+# I can lookup individual items in my organization's AGOL
+item = gis.content.get( "the_layer_ID_in_AGOL_content_details" )
+item
