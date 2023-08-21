@@ -1,6 +1,6 @@
 # I can use the Arcpy library in my GIS python scripts to create maps,
-# use ESRI GIS tools, automate recurring data tasks, and create organization-
-# specific workflows.
+# use ESRI GIS tools, move data around, automate recurring data tasks,
+# and create organization-specific workflows.
 
 # Create a Local File GDB in my project
 import arcpy
