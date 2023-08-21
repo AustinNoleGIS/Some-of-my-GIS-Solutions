@@ -1,0 +1,26 @@
+# I can use the Arcpy library in my GIS python scripts to create maps,
+# use ESRI GIS tools, automate recurring data tasks, and create organization-
+# specific workflows.
+
+# Create a Local File GDB in my project
+import arcpy
+arcpy.management.CreateFileGDB( output_folder_pathway
+, output_GDB_name
+, {output_ArcGIS_version}      # <--- this part optional
+)
+<File Geodatabase has been created>
+
+# Set my ArcGIS Pro project's current workspace
+arcpy.env.workspace = "my_file_GDB's_fulll_pathway"
+
+# Import a shapefile from a RAW_Data folder into my newly-created File GDB
+in_feature = [ "my_shp's_full_pathway" ]
+out_location = "file_GDB's_Basename"
+arcpy.conversion.FeatureClassToGeodatabase( in_feature
+, out_location
+)
+
+# Print the XY Coordinate System/Spatial Reference for any shapefile
+dataset = "my_shp's_full_pathway"
+spatial_ref = arcpy.Describe( dataset ).spatialReference
+spatial_ref
