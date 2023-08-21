@@ -1,0 +1,14 @@
+This script is an example of how GIS Analysts and Developers like myself can
+'automate the small stuff' when it comes to certain workflows, like when needinf to move data.
+Here, I am pulling spatial data out from my city's/organization's spatial database environment 
+and pushing it into my ArcGIS Pro project where I may explore it and conduct further analysis on it,
+all by using just a few lines of code.
+
+arcpy.management.MakeFeatureLayer( r“my_FeatureClass_full_pathway_in_the_City_SDE”
+, “my_new_output_layer’s_title”
+, ‘’
+, r”full_pathway_of_my_City_SDE”
+, “{field_info}”
+)
+
+<Result 'CityLimits_Layer' added to my map>
