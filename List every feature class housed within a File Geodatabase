@@ -1,0 +1,17 @@
+# List every feature class housed within my File Geodatabase.
+
+# Import libraries
+import os
+import arcpy
+
+# Set the workspace for ListFeatureClasses function
+arcpy.env.workspace = r"my_File_GDB's_full_pathway"
+
+# List every feature class housed within my File GDB including any
+# currently in Feature Datasets
+datasets = arcpy.ListDatasets( feature_type = 'feature' )
+datasets = [''] + datasets if datasets is not None else []
+for ds in datasets:
+      for fc in arcpy.ListFeatureClasses( feature_dataset = ds )
+          path = os.path.join( ds, fc )
+          print( path )
