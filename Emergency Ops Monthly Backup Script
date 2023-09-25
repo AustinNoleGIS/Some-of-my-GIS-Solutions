@@ -1,0 +1,258 @@
+# The city’s EOC (Emergency Operations Center) team regularly uses GIS. In case there’s a city-wide network outage, the 
+# EOC still needs access to maps and spatial data. To provide these GIS resources during an outage, we use this script to 
+# backup all maps and city GIS data onto a large external hard drive on a monthly basis.
+
+import os, arcpy, datetime
+
+class CopyMXDandData(object):
+    def __init__(self, FoldersContainingMXDtoCopy, PathwayToPasteData):
+
+        self.CopyPathway = FoldersContainingMXDtoCopy
+        self.PastePathway = PathwayToPasteData
+        self.externalPathway = self.PastePathway + "\\Backup GIS Data and MXDs"
+        self.dataFolder = self.externalPathway + "\\Data"
+        self.mxdFolder = self.externalPathway + "\\MXD"
+        self.docFolder = self.externalPathway + "\\Documents"
+        self.scriptFolder = self.externalPathway + "\\Scripts"
+
+    def configuringFolders(self):
+    # this method creates the folder schema
+
+        if os.path.exists(self.externalPathway) == False:
+            os.mkdir(self.externalPathway)
+        if os.path.exists(self.dataFolder) == True:
+            os.remove(self.dataFolder)
+        if os.path.exists(self.mxdFolder) == True:
+            os.remove(self.mxdFolder)
+        if os.path.exists(self.docFolder) == False:
+            os.mkdir(self.docFolder)
+        if os.path.exists(self.scriptFolder) == False:
+            os.mkdir(self.scriptFolder)
+
+        os.mkdir(self.dataFolder)
+        os.mkdir(self.mxdFolder)
+
+        print "Folders configured successfully"
+
+    def copyMXDs(self):
+    # This method copies all MXDs in the indicated folder into the new location. Two lists are compiled for the SDE
+    # and other data sources used in the MXDs. The list are returned.
+
+        datasourceList = []
+        sdepathwayList = []
+
+        # Finding the all of the mxd in the folder and copying them to the output location.
+        for fileName in [x for x in os.listdir(self.CopyPathway) if os.path.splitext(x)[1] == ".mxd"]:
+            newFullPath = self.mxdFolder + '\\' + fileName
+            fullPath = os.path.join(self.CopyPathway, fileName)
+            arcpy.Copy_management(fullPath, newFullPath)
+
+            # Finding all workspaces used in the mxd and appending them to the according datasource list
+            mapdoc = arcpy.mapping.MapDocument(newFullPath)
+            for lyr in arcpy.mapping.ListLayers(mapdoc):
+
+                if lyr.supports("SERVICEPROPERTIES"):
+                    if lyr.serviceProperties["ServiceType"] == "SDE":
+                        # Creating the workspace pathway for sde. If the SDE naming convention changes, so will this str
+                        sdepathway = "Database Connections\\" + lyr.serviceProperties["UserName"] + "@" + \
+                                     lyr.serviceProperties["Database"] + "@" + lyr.serviceProperties["Server"]
+
+                        if sdepathway not in sdepathwayList:
+                            sdepathwayList.append(sdepathway)
+
+                if lyr.supports("DATASOURCE"):
+                    dataSource = lyr.workspacePath
+                    if dataSource.endswith(".sde") == False:
+                        data = dataSource.rstrip('\\')
+                        if data not in datasourceList:
+                            datasourceList.append(data)
+
+        print "Copying MXDs successful"
+        return sdepathwayList, datasourceList
+
+    def createFolders(self, sdepathwayList, datasourceList):
+    # This method creates the data folder schema in the new folder location. For data sources that are not in a SDE,
+    # the folder schema will be created to replicate the original pathway. A dictionary is created of the original
+    # pathway and the corresponding new pathway.
+
+        gdbsandWorkspaces = {}
+
+        for sde in sdepathwayList:
+            # Creating the new name of the new gdb and creating new gdb
+            sdeGDBname = sde.split("@")
+            arcpy.CreateFileGDB_management(self.dataFolder, sdeGDBname[-1])
+
+            # Adding workspace pathway with the new gdb to the dictionary
+            if sde not in gdbsandWorkspaces:
+                gdbsandWorkspaces[sde + ".sde"] = [self.dataFolder + "\\" + sdeGDBname[-1]]
+
+        for d in datasourceList:
+            # Creating the new name of the new gdb and creating new gdb
+            newfolder = d.replace(":", "").replace(".sde", "").replace(".gdb", "").replace(".", "")
+            splitTest = newfolder.split("\\")
+            name = splitTest[-1]
+
+
+            os.makedirs(self.dataFolder + "\\" + newfolder)
+
+            if name == "":
+                name = splitTest[-2]
+            arcpy.CreateFileGDB_management(self.dataFolder + "\\" + newfolder, name)
+
+            # Adding workspace pathway with the new gdb to the dictionary
+            if d not in gdbsandWorkspaces:
+                gdbsandWorkspaces[d] = [self.dataFolder + "\\" + newfolder + "\\" + name]
+
+        print "Creating GDBs successful"
+        return gdbsandWorkspaces
+
+    def copyData(self, gdbsandWorkspacesDic):
+    # This method copies the data sources over to the new location. CAD files break the script, thus are not included.
+
+        for d in gdbsandWorkspacesDic:
+            # Setting the workspace to the original data pathway
+            arcpy.env.workspace = d
+            featureclasses = arcpy.ListFeatureClasses()
+            dataset = arcpy.ListDatasets()
+            tablelist = arcpy.ListTables()
+
+            try:
+                # Copying Datasets over
+                for data in dataset:
+                    renameData = data
+                    if data.startswith("sde") == True:
+                        renameData = data.replace("sde_published.ARCADMIN.", "")
+                    if data.endswith(".dwg") == False:
+                        arcpy.Copy_management(data, gdbsandWorkspacesDic[d][0] + ".gdb\\" + renameData)
+
+                # Copying tables over
+                for table in tablelist:
+                    arcpy.TableToGeodatabase_conversion(table, gdbsandWorkspacesDic[d][0] + ".gdb")
+
+                # Copying feature classes over
+                for fc in featureclasses:
+                    arcpy.FeatureClassToGeodatabase_conversion(fc, gdbsandWorkspacesDic[d][0] + ".gdb")
+            except:
+                continue
+
+        print "Copying data successful"
+
+    def replacePathways(self, gdbsandWorkspace):
+    # This method replaces the data sources in all of the copied MXDs.
+
+        # iterating through all the MXDs
+        for fileName in [x for x in os.listdir(self.mxdFolder) if os.path.splitext(x)[1] == ".mxd"]:
+            fullPath = os.path.join(self.mxdFolder, fileName)
+            mxd = arcpy.mapping.MapDocument(fullPath)
+
+            for lyr in arcpy.mapping.ListLayers(mxd):
+                # iterating through
+                for datasource in gdbsandWorkspace:
+                    # Replacing SDE data sources
+                    if lyr.supports("SERVICEPROPERTIES"):
+                        if lyr.serviceProperties["ServiceType"] == "SDE":
+                            sdepathway = "Database Connections\\" + lyr.serviceProperties["UserName"] + "@" + \
+                                         lyr.serviceProperties["Database"] + "@" + lyr.serviceProperties["Server"] + \
+                                         '.sde'
+                            if sdepathway == datasource:
+                                try:
+                                    x = lyr.datasetName
+                                    y = x.split(".")
+                                    lyr.replaceDataSource(gdbsandWorkspace[datasource][0] + ".gdb", "FILEGDB_WORKSPACE",
+                                                          y[-1])
+                                except:
+                                    print 'Unable to replace the data source ' + lyr.workspacePath + "\\" + lyr.datasetName
+                                    continue
+
+
+                    # Replacing non-SDE other data sources
+                    if lyr.supports("DATASOURCE"):
+                        datapath = lyr.workspacePath
+                        x = lyr.datasetName
+                        y = x.split(".")
+                        if datapath.endswith(".sde") == False:
+                            if lyr.workspacePath == datasource:
+                                try:
+                                    x = lyr.datasetName
+                                    y = x.split(".")
+                                    lyr.replaceDataSource(gdbsandWorkspace[datasource][0] + ".gdb", "FILEGDB_WORKSPACE",
+                                                          y[-1])
+                                except:
+                                    # When shapefiles with a name starting with a number are copied over to a GDB, a
+                                    # "t" is added to the front of the feature class name. This replaces these cases.
+                                    try:
+                                        x = lyr.datasetName
+                                        y = x.split(".")
+                                        lyr.replaceDataSource(gdbsandWorkspace[datasource][0] + ".gdb", "FILEGDB_WORKSPACE",
+                                                              "t" + y[-1])
+                                    except:
+                                        print 'Unable to replace the data source ' + datapath
+
+            mxd.save()
+
+
+        print "Replacing pathways successful"
+
+    def getDataSourceDictionary(self):
+
+        datasourceList = []
+        sdepathwayList = []
+        gdbsandWorkspaces = {}
+
+        for fileName in [x for x in os.listdir(self.mxdFolder) if os.path.splitext(x)[1] == ".mxd"]:
+            newFullPath = self.mxdFolder + '\\' + fileName
+
+            # Finding all workspaces used in the mxd and appending them to the according datasource list
+            mapdoc = arcpy.mapping.MapDocument(newFullPath)
+            for lyr in arcpy.mapping.ListLayers(mapdoc):
+                if lyr.supports("SERVICEPROPERTIES"):
+                    if lyr.serviceProperties["ServiceType"] == "SDE":
+                        # Creating the workspace pathway for sde. If the SDE naming convention changes, so will this str
+                        sdepathway = "Database Connections\\" + lyr.serviceProperties["UserName"] + "@" + \
+                                     lyr.serviceProperties["Database"] + "@" + lyr.serviceProperties["Server"]
+
+                        if sdepathway not in sdepathwayList:
+                            sdepathwayList.append(sdepathway)
+
+                if lyr.supports("DATASOURCE"):
+                    dataSource = lyr.workspacePath
+                    if dataSource.endswith(".sde") == False:
+                        if dataSource not in datasourceList:
+                            datasourceList.append(dataSource)
+
+        for sde in sdepathwayList:
+            # Creating the new name of the new gdb and creating new gdb
+            sdeGDBname = sde.split("@")
+            # Adding workspace pathway with the new gdb to the dictionary
+            if sde not in gdbsandWorkspaces:
+                gdbsandWorkspaces[sde + ".sde"] = [self.dataFolder + "\\" + sdeGDBname[-1]]
+
+        for d in datasourceList:
+            # Creating the new name of the new gdb and creating new gdb
+            newfolder = d.replace(":", "").replace(".sde", "").replace(".gdb", "").replace(".", "")
+            splitTest = newfolder.split("\\")
+            name = splitTest[-1]
+
+            if name == "":
+                name = splitTest[-2]
+
+            # Adding workspace pathway with the new gdb to the dictionary
+            if d not in gdbsandWorkspaces:
+                gdbsandWorkspaces[d] = [self.dataFolder + "\\" + newfolder + "\\" + name]
+
+        return gdbsandWorkspaces
+
+
+print "Starting at " + str(datetime.datetime.now())
+
+folderToCopy = "M:\\IT\\Mxds"
+outputFolder = "E:"
+
+backup = CopyMXDandData(folderToCopy, outputFolder)
+backup.configuringFolders()
+sdePath, dataPath = backup.copyMXDs()
+pathwayDic = backup.createFolders(sdePath, dataPath)
+backup.copyData(pathwayDic)
+backup.replacePathways(pathwayDic)
+
+print "Ending at " + str(datetime.datetime.now())
