@@ -1,0 +1,65 @@
+# I can use arcpy functions to explore and describe GIS datasets all from the comfort of
+# my Jupyter Notebooks or Python window.
+# In this case, I’ll be using Jupyter Notebooks to explore the city's SDE Business
+# License points data before I start querying what I need to show my end user.
+#
+# Explore my SDE Feature Class data’s Properties:
+#
+# I can explore the properties of my svBusinessLicenses points Feature Class
+# currently living inside my TESTFinance.sde database.
+#
+# First, assign the svBusinessLicenses points Feature Class’s pathway to a variable.
+
+BLpointsFC = r”C:\Users\ANole\OneDrive - City of Kent\Documents\PROJECTS & TASKS\SUMMER\BLS_Web_App_Summer_Project\ArcGIS_Pro\DATA\Kent_BLAST_project\TESTFinance.sde\Finance.dbo.svBusinessLicenses”
+
+# Now that my points are assigned to a variable, I can use arcpy functions to list
+# and describe GIS datasets all from the comfort of my Jupyter Notebooks or
+# Python window.
+#
+# Find the spatial reference (aka the XY Coordinate System) of the points data.
+
+spatial_ref = arcpy.Describe( BLpointsFC ).spatialReference
+spatial_ref
+
+# NOTE: Before we go any further, make sure you’ve set the map/project’s XY
+# Coordinate System to our Kent GIS Guidelines’ required XY Coordinate System: 
+#
+# NAD 1983 HARN StatePlane Washington North FIPS 4601 (US Feet)
+#
+#
+#
+# NOW, explore this feature class' properties using da.Describe().
+#
+# use the da.Describe() function to describe additional feature class properties.
+# The da.Describe() function is a function of the arcpy.da module, which is used for
+# data access workflows. This function returns a Python dictionary. A Python
+# dictionary consists of pairs of keys and their corresponding values. The keys in
+# the dictionary returned by da.Describe() are the properties of the dataset.
+#
+# The pairs of keys and their corresponding values returned by
+
+desc = arcpy.da.Describe( BLpointsFC )
+
+# This returns the properties of that dataset in the form of messy text.
+# (Remember, the point feature class’ dictionary contains all the properties info in
+# the form of {Key: Value} pairs).
+#
+# HOWEVER, all this messy text is hard to read.   Let’s tidy it up!
+#
+# I can use a loop with the items() method to reprint this messy text.
+
+for k, v in desc.items():
+	print(f”{k}: {v}”)
+
+# This again returns the properties of that variable BLpointsFC, which is our feature class in SDE, only
+# this time all the properties text is formatted nicely.
+#
+# ^^ What just happened?
+# I used a for loop here to take a set of inputs with a block of code and run the
+# code block on each of the inputs.
+# In this case, the for loop iterates over the key and value pairs stored in the SDE feature class (which are 
+# stored in the variable BLpointsFC) which then get returned by calling
+# the items() method on the desc dictionary.
+#
+# PRINTING THE DICTIONARY USING A LOOP ALLOWS ME TO VIEW FEATURE CLASS PROPERTIES THAT I PREVIOUSLY COULD NOT.
+
