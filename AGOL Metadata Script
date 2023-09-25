@@ -1,0 +1,45 @@
+# This script creates a list of all ArcGIS Online items that are missing metadata elements.
+
+import csv
+import datetime
+from arcgis.gis import GIS
+
+print(datetime.datetime.now())
+date = datetime.datetime.now().strftime("%y-%m-%d")
+#csvName = "M:\\IT\\Work\\FB\\Meta Data\\Documents\\AGOL Missing Meta data script output\\Missing Metadata_" + str(date) + ".csv"
+csvName = "X:\\IT\\Work\\FB\\Meta Data\\Documents\\AGOL Missing Meta data script output\\Missing Metadata_" + str(date) + ".csv"
+
+itemCount = 0
+
+# Logging into AGOL
+gis = GIS('https://kirklandwa.maps.arcgis.com', 'USerName', 'Password')
+print('Logged in as ' + str(gis.properties.user.username))
+
+# opening and writting to a csv
+with open(csvName, mode='w') as csv_file:
+    fnames = ["Priority Level", "Item Name", "Item Owner", "Item Type", "Access", "Missing Element", "Comments"]
+    writer = csv.DictWriter(csv_file, fieldnames=fnames, lineterminator = '\n')
+    writer.writeheader()
+    
+    # Searching for AGOL items 
+    mysearch = gis.content.search('', '', max_items=10000)
+    for i in mysearch:
+        # Determining priority level of each item
+        if i.access == 'org' or i.access == 'public' or i.access == 'shared':
+            priorityLevel = 'High'
+        if i.access == 'private':
+            priorityLevel = 'Low'
+
+        # writing to the csv if the item is missing a description,summary, or both 
+        if i.description == None and i.snippet == None:
+            writer.writerow({'Priority Level' : priorityLevel, 'Item Name' : i.title, 'Item Owner' : i.owner, 'Item Type' : i.type, "Access" : i.access, 'Missing Element' : 'Summary and Description'})
+            itemCount = itemCount + 1
+        elif i.description == None:
+            writer.writerow({'Priority Level' : priorityLevel, 'Item Name' : i.title, 'Item Owner' : i.owner, 'Item Type' : i.type, "Access" : i.access, 'Missing Element' : 'Description'})
+            itemCount = itemCount + 1
+        elif i.snippet == None:
+            writer.writerow({'Priority Level' : priorityLevel, 'Item Name' : i.title, 'Item Owner' : i.owner, 'Item Type' : i.type, "Access" : i.access, 'Missing Element' : 'Summary'})
+            itemCount = itemCount + 1 
+            
+print("There are " + str(itemCount) + " items missing metadata elements")  
+print(datetime.datetime.now())
