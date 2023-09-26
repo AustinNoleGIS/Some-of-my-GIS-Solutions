@@ -6,8 +6,7 @@ from arcgis.gis import GIS
 
 print(datetime.datetime.now())
 date = datetime.datetime.now().strftime("%y-%m-%d")
-#csvName = "M:\\IT\\Work\\FB\\Meta Data\\Documents\\AGOL Missing Meta data script output\\Missing Metadata_" + str(date) + ".csv"
-csvName = "X:\\IT\\Work\\FB\\Meta Data\\Documents\\AGOL Missing Meta data script output\\Missing Metadata_" + str(date) + ".csv"
+csvName = r"X:/IT/Work/FB/Meta Data/Documents/AGOL Missing Meta data script output/Missing Metadata_" + str(date) + ".csv"
 
 itemCount = 0
 
