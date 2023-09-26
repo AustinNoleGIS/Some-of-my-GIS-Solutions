@@ -1,4 +1,4 @@
-# Create + Add a new POINTS ShapeFile FeatureClass from a .CSV file containing XY Coordinates to my map.
+# A script used to Create and Add a new POINTS ShapeFile FeatureClass from a .CSV file containing XY Coordinates to my map.
 
 # import statements
 
@@ -10,16 +10,16 @@ import os	      # provides me with functions used in day-to-day python programmi
 # to allow overwriting the outputs, change the overwrite option to True.
 arcpy.env.overwriteOutput = True
 
-# root directory - make this match my system
+# My Root Directory: make this match my system.
 root_directory = 'C:\\_pathway_to_my_folder_containing_my_CSV'
 
-# print user text
+# Print notification text for user.
 print("creating new feature class")
 
-# need to define a projection to display correctly -- in this case, wgs_84.prj
-prj = root_directory + ""name_of_desired_projection_file_in_root_directory"  
+# I need to define a projection to display the CSVcorrectly -- in this case, wgs_84.prj.
+prj = root_directory + "name_of_desired_projection_file_in_root_directory"  
 
-# create the shapefile using ArcPy
+# create the shapefile using ArcPy.
 Output_FC = arcpy.CreateFeatureclass_management(root_directory
 , "311.shp"
 , "POINT"
@@ -30,16 +30,16 @@ Output_FC = arcpy.CreateFeatureclass_management(root_directory
 )
 print ("finished creating new feature class")
 
-# the CSV file coming in. its contents will be written into the shapefile
+# The CSV file coming in. Its contents will be written into the shapefile.
 file_in = root_directory + ‘name_of_my_CSV’
 
-# define the fields from the CSV that will be accessed
+# Define the fields from the CSV that will be accessed.
 LAT_field = "LATITUDE"
 LON_field = "LONGITUDE"
 OVERDUE_field = "OVERDUE"
 SR_TYPE_field = "SR TYPE"
 
-# define fields in shapefile
+# Define fields in shapefile.
 fieldName_RecordId = "record_id"
 fieldPrecision = 9
 fieldAlias = "refcode"
@@ -49,7 +49,7 @@ fieldName_Overdue = "overdue"
 fieldName_sr = "sr_type"
 fieldLength = 255
 
-# create these fields in the new shapefile
+# Create these fields in the new shapefile.
 arcpy.AddField_management(Output_FC
 , fieldName_RecordId
 , "LONG"
@@ -68,40 +68,40 @@ arcpy.AddField_management(Output_FC
 , field_length=fieldLength
 )
 
-# open the CSV for reading its contents
+# Open the CSV for reading its contents
 with open(file_in) as csvfile:
-    #read the CSV as a dict - i.e, key:value pairs - https://docs.python.org/3/library/csv.html#csv.DictReader
+    # Read the CSV as a dict - i.e, key:value pairs - https://docs.python.org/3/library/csv.html#csv.DictReader.
     current_data = csv.DictReader(csvfile)
-    #seed the unqiue ID value, start at 0
+    # Seed the unqiue ID value, start at 0.
     rowidval = 0
-    #begin for-in loop of the CSV dict object and access of the CSV fields defined previously starting on line 28
+    # Begin for-in loop of the CSV dict object and access of the CSV fields defined previously starting on line 28.
     for row in current_data:
-        #inspect the coordinate values
+        # Inspect the coordinate values.
         print("Coord:" + row[LAT_field] + "," + row[LON_field])
         try:
-            # the fields in the shape file that were 
+            # The fields in the shape file that were.
             fields = [fieldName_RecordId, fieldName_Overdue, fieldName_sr, 'SHAPE@XY']
 
-            # a cursor is used to read/write data to the shapefile
-            # this code will access the shapefile to begin editing
+            # A cursor is used to read/write data to the shapefile.
+            # This code will access the shapefile to begin editing.
             cursor = arcpy.da.InsertCursor(Output_FC, fields)
 
-            # convert the lat and long from the CSV into a list of float values
+            # Convert the lat and long from the CSV into a list of float values.
             xy = (float(row[LON_field]), float(row[LAT_field]))
 
-            # write a new row of data into the shapefile using the contents of the CSV that is currently in the loop
-            # the order of data being written has to be the same as the variable fields defined around line 62
+            # Write a new row of data into the shapefile using the contents of the CSV that is currently in the loop.
+            # The order of data being written has to be the same as the variable fields defined around line 62.
             cursor.insertRow((rowidval, float(row[OVERDUE_field]),row[SR_TYPE_field],xy))
 
-            # increment the unqiue ID value by 1 to get ready for the next iteration of the loop
+            # Increment the unqiue ID value by 1 to get ready for the next iteration of the loop.
             rowidval += 1
         except Exception:
            
-            # catch any errors that might happen
+            # Catch any errors that might happen.
             e = sys.exc_info()[1]
             print(e.args[0])
 
-# delete cursor object from memory so the final shapefile can be accessed when the code is finished
+# Delete cursor object from memory so the final shapefile can be accessed when the code is finished.
 del cursor
 print ("done")
 
